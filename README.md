@@ -6,7 +6,7 @@ The goal: **understand how things work under the hood** while improving my progr
 
 ## Project Roadmap
 - [x] Stage 1: Markdown → HTML Converter
-- [x] Stage 1: Tiny HTTP Server
+- [ ] Stage 1: Tiny HTTP Server
 - [ ] Stage 2: Simple Shell
 - [ ] Stage 2: Tiny DNS Resolver
 - [ ] Stage 3: Key-Value Database
