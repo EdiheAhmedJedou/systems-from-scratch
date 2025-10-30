@@ -4,9 +4,25 @@ def escape_html(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 def process_inline(s):
-    # s must be a string
+    # 1) extract inline code segments into placeholders
+    code_blocks = []
+    def repl_code(m):
+        code_content = m.group(1)
+        # store the escaped inner content (escape once)
+        code_blocks.append(escape_html(code_content))
+        return f"@@CODE{len(code_blocks)-1}@@"
+
+    s = re.sub(r'`(.+?)`', repl_code, s)
+
+    # 2) now escape the remaining text
     s = escape_html(s)
-    s = re.sub(r'`(.+?)`', lambda m: "<code>" + escape_html(m.group(1)) + "</code>", s)
+
+    # 3) restore code placeholders with proper <code> tags (they are already escaped)
+    for i, cb in enumerate(code_blocks):
+        s = s.replace(f"@@CODE{i}@@", f"<code>{cb}</code>")
+
+    # 4) do other inline conversions (bold/italic/links) on the already-escaped text
+    # Note: these replacements insert HTML tags; they should be done AFTER global escape
     s = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', s)
     s = re.sub(r'\*(.+?)\*', r'<em>\1</em>', s)
     s = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', s)
@@ -19,7 +35,25 @@ para_lines=[]
 
 with open('samples/test.md', 'r') as fin:
     for line in fin:
-        if line.startswith("## "):
+
+        if line.strip().startswith("```"):
+            if not in_code:
+                in_code = True
+                out_lines.append("<pre><code>")
+            else:
+                in_code = False
+                out_lines.append("</code></pre>")
+            continue
+        if in_code:
+            out_lines.append(escape_html(line.rstrip("\n")))
+            continue
+
+        elif line.startswith("###"):
+            content = line[4:].strip()
+            content = process_inline(content) 
+            html = f"<h3>{content}</h3>"
+            out_lines.append(html)
+        elif line.startswith("## "):
             content = line[3:].strip()
             content = process_inline(content) 
             html = f"<h2>{content}</h2>"
